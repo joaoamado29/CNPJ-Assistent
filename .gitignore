@@ -1,0 +1,42 @@
+# --- Segredos / ambiente ---
+.env
+.env.*
+!.env.example
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Ambientes virtuais ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Dados gerados em runtime ---
+data/
+logs/
+exports/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# --- Capturas/temporários da automação ---
+*.tmp
+screenshots/
+
+# --- Editores / SO ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

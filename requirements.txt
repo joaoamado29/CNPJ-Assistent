@@ -1,0 +1,30 @@
+# Agente Telegram – Simples Nacional
+# Install: pip install -r requirements.txt
+
+# Telegram Bot
+python-telegram-bot==21.6
+
+# Automation (PyAutoGUI image recognition: requires pyscreeze + Pillow + opencv-python for confidence=)
+pyautogui==0.9.54
+pyscreeze==1.0.1
+Pillow==12.2.0
+opencv-python==4.13.0.92
+pyperclip==1.11.0
+
+# Database (ORM)
+SQLAlchemy==2.0.36
+
+# Settings / Configuration
+pydantic==2.10.3
+pydantic-settings==2.7.1
+python-dotenv==1.0.1
+
+# Excel Spreadsheet Generation
+openpyxl==3.1.5
+
+# psycopg3: better Unicode/error-message handling on Windows than psycopg2 + libpq
+psycopg[binary]>=3.2
+selenium==4.10
+
+# Web UI
+streamlit==1.57.0
