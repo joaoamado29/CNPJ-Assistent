@@ -16,7 +16,7 @@ def computar_resposta(prompt: str) -> str:
 
     cnpj = extrair_cnpj(prompt)
     if cnpj is None:
-        return "CNPJ não encontrado."
+        return "Nenhum CNPJ encontrado na mensagem. Digite /ajuda para obter ajuda."
 
     with st.spinner(f"Consultando {formatar_cnpj(cnpj)}..."):
         return formatar_resposta(consultar(cnpj))

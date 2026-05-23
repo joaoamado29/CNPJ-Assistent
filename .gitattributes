@@ -1,0 +1,3 @@
+# Scripts shell sempre com fim de linha LF (necessário para rodar no container Linux)
+*.sh text eol=lf
+docker/start.sh text eol=lf

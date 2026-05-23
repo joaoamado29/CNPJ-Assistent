@@ -1,0 +1,26 @@
+# Ambiente virtual e caches (são reinstalados no build)
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Git e metadados
+.git/
+.gitignore
+.gitattributes
+
+# Segredos (injetados via env_file em runtime, não no build)
+.env
+
+# Dados gerados em runtime (montados como volume)
+data/
+logs/
+exports/
+*.db
+*.log
+
+# Docs / docker (não precisam ir para a imagem)
+README.md

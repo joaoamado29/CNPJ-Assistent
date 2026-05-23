@@ -1,0 +1,24 @@
+services:
+  app:
+    build: .
+    container_name: agente-simples-nacional
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    environment:
+      # Display da tela virtual e caminho do Chromium dentro do container
+      - DISPLAY=:99
+      - CHROME_BINARY_PATH=/usr/bin/chromium
+      # Faz o pyscreeze detectar X11 e usar o scrot para os screenshots (locateOnScreen)
+      - XDG_SESSION_TYPE=x11
+    volumes:
+      # Persistem entre execuções (e ficam acessíveis no host)
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./exports:/app/exports
+      # Templates de imagem da automação: editar no host reflete sem rebuild
+      - ./src/automation/images:/app/src/automation/images
+    # O Chromium precisa de memória compartilhada maior para não travar
+    shm_size: "2gb"
+    restart: unless-stopped

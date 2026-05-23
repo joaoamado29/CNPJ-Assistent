@@ -86,6 +86,7 @@ class SimplesNacionalBot():
         if sys.platform == "win32":
             if chrome_path == "chrome.exe":
                 os.startfile(chrome_path)
+                logger.info("Chrome iniciado via os.startfile.")
             else:
                 subprocess.Popen(
                     [chrome_path, PORTAL_URL],
@@ -108,13 +109,15 @@ class SimplesNacionalBot():
                     "--user-data-dir=/tmp/chrome-data",
                     "--no-first-run",
                     "--no-default-browser-check",
+                    "--start-maximized",
                     PORTAL_URL,
                 ],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
 
-        self._clicar_imagem("btn_consultar.png", timeout=5) # GAMBIARRA ver se a tela carregou
+        # Confirma que a tela carregou localizando o campo de CNPJ (sem submeter vazio)
+        self._clicar_imagem("cnpj_input.png", timeout=10)
     # consultar cnpj e extrair dados
     def _consultar_cnpj(self, cnpj: str) -> str:
         logger.info(f"Consultando CNPJ: {cnpj}")
@@ -123,8 +126,13 @@ class SimplesNacionalBot():
         time.sleep(1)  # Espera o texto ser processado
         logger.info("CNPJ digitado, realizando consulta...")
 
+        # Submete o formulário e aguarda a página de resultado
+        if not self._clicar_imagem("btn_consultar.png", timeout=5):
+            logger.warning("Botão Consultar não encontrado")
+            return ""
+        time.sleep(2)  # Espera a página de resultado carregar
 
-        if not self._clicar_imagem("btn_maisinfo.png", timeout=3):
+        if not self._clicar_imagem("btn_maisinfo.png", timeout=5):
             logger.warning("CNPJ não encontrado na base de dados")
             return ""
 

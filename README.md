@@ -77,6 +77,25 @@ Principais variáveis (veja `.env.example` para a lista completa):
 streamlit run app.py
 ```
 
+## Rodando com Docker
+
+A imagem inclui Chromium + tela virtual (Xvfb) + window manager, então tanto a
+interface web quanto a automação rodam dentro do container.
+
+```bash
+copy .env.example .env        # configure o .env antes (TELEGRAM_BOT_TOKEN etc.)
+docker compose up --build
+```
+
+A interface fica em **http://localhost:8501**. As pastas `data/`, `logs/` e
+`exports/` são montadas como volume e persistem no host.
+
+> **Nota sobre a automação:** o reconhecimento por imagem (`src/automation/images/*.png`)
+> foi capturado no Chrome do Windows. A renderização no Chromium Linux é diferente,
+> então pode ser necessário **recapturar essas imagens dentro do container** para a
+> automação funcionar. A resolução da tela virtual (1920x1080) está definida em
+> `docker/start.sh`.
+
 ## Configuração
 
 Toda a configuração é lida do arquivo `.env` na raiz do projeto através do

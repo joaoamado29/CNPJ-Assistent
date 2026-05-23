@@ -2,20 +2,20 @@
 
 RESPOSTAS_COMANDOS = {
     # COMANDO AJUDA
-    "/Ajuda": """
+    "/ajuda": """
     Qualquer mensagem contendo um CNPJ (14 dígitos) dispara a consulta automática
 
     **Comandos disponíveis:**
-    - `/Ajuda`: Mostra um texto de ajuda (este mesmo).
-    - `/Status`: Status da ultima consulta.
-    - `/Histórico`: Listar suas últimas consultas.
-    - `/Resultado`: Baixar planilhas de uma consulta. Apontar o id da consulta desejada (ex: `/Resultado 4bea090e`).""",
+    - `/ajuda`: Mostra um texto de ajuda (este mesmo).
+    - `/status`: Status da ultima consulta.
+    - `/histórico`: Listar suas últimas consultas.
+    - `/resultado`: Baixar planilhas de uma consulta. Apontar o id da consulta desejada (ex: `/resultado 4bea090e`).""",
     # COMANDO STATUS
-    "/Status": "Texto de status aqui",
+    "/status": "Texto de status aqui",
     # COMANDO HISTÓRICO
-    "/Histórico": "Texto de histórico aqui",
+    "/histórico": "Texto de histórico aqui",
     # COMANDO RESULTADO
-    "/Resultado": "Texto de resultado aqui",
+    "/resultado": "Texto de resultado aqui",
 }
 
 
