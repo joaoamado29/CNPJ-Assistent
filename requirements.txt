@@ -28,3 +28,6 @@ selenium==4.10
 
 # Web UI
 streamlit==1.57.0
+
+# Login OIDC nativo do Streamlit (st.login / st.user)
+Authlib==1.7.2

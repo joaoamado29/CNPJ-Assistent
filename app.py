@@ -3,11 +3,29 @@ import streamlit as st
 
 from webapp.chat import on_pill, registrar_pergunta, responder_pendente
 from webapp.comandos import RESPOSTAS_COMANDOS
+from webapp.historico import carregar_mensagens
 
 def main() -> None:
     st.title("Consulta Simples Nacional")
 
-    # Histórico persiste entre reruns
+    # Exige login: sem usuário, mostra botão e para por aqui
+    if not st.user.is_logged_in:
+        st.info("Faça login para acessar suas consultas.")
+        if st.button("Entrar com Google"):
+            st.login()
+        st.stop()
+
+    user_id = st.user.email
+    with st.sidebar:
+        st.write(f"Logado como **{user_id}**")
+        if st.button("Sair"):
+            st.logout()
+
+    # Carrega o histórico salvo do usuário uma vez por sessão
+    if st.session_state.get("user_id") != user_id:
+        st.session_state.user_id = user_id
+        st.session_state.messages = carregar_mensagens(user_id)
+
     if "messages" not in st.session_state:
         st.session_state.messages = []
 

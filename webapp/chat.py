@@ -6,6 +6,7 @@ import time
 from webapp.cnpj import extrair_cnpj, formatar_cnpj
 from webapp.comandos import resolver_comando
 from webapp.consulta import consultar, formatar_resposta
+from webapp.historico import salvar_mensagem
 
 
 def computar_resposta(prompt: str) -> str:
@@ -25,6 +26,8 @@ def computar_resposta(prompt: str) -> str:
 def registrar_pergunta(prompt: str) -> None:
     """Adiciona a mensagem do usuário e marca a resposta como pendente."""
     st.session_state.messages.append({"role": "user", "content": prompt})
+    if user_id := st.session_state.get("user_id"):
+        salvar_mensagem(user_id, "user", prompt)
     st.session_state.resposta_pendente = prompt
 
 
@@ -45,6 +48,8 @@ def responder_pendente(container) -> bool:
     resposta = computar_resposta(prompt)
     texto = container.chat_message("assistant").write_stream(_digitar(resposta))
     st.session_state.messages.append({"role": "assistant", "content": texto})
+    if user_id := st.session_state.get("user_id"):
+        salvar_mensagem(user_id, "assistant", texto)
     return True
 
 

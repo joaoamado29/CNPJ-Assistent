@@ -8,23 +8,28 @@ portal oficial, guarda o resultado em banco e permite exportar para planilha.
 
 - 🤖 **Bot do Telegram** — envie um CNPJ e receba a situação do Simples Nacional / SIMEI.
 - 💬 **Interface web (Streamlit)** — chat com efeito de digitação e comandos por *pills*.
+- 🔐 **Login com Google (OIDC)** — autenticação nativa via `st.login`/`st.user` (Authlib).
+- 🗂️ **Histórico por usuário** — cada usuário logado tem seu chat salvo e recarregado no banco.
 - 🔎 **Automação do portal** — consulta o [Portal do Simples Nacional](https://consopt.www8.receita.fazenda.gov.br/consultaoptantes) via Selenium/PyAutoGUI.
 - 🗄️ **Persistência** — histórico de consultas em SQLite (padrão) ou PostgreSQL via SQLAlchemy.
 - 📊 **Export** — geração de planilhas Excel (openpyxl) com os resultados.
 
 ## Stack
 
-Python 3.11 · Streamlit · python-telegram-bot · Selenium + PyAutoGUI · SQLAlchemy · Pydantic Settings · openpyxl
+Python 3.11 · Streamlit · Authlib (login OIDC) · python-telegram-bot · Selenium + PyAutoGUI · SQLAlchemy · Pydantic Settings · openpyxl
 
 ## Estrutura
 
 ```
 .
-├── app.py                      # Ponto de entrada da interface web (Streamlit)
+├── app.py                      # Ponto de entrada da interface web (login + chat)
 ├── requirements.txt
 ├── .env.example                # Modelo de variáveis de ambiente
+├── .streamlit/
+│   └── secrets.toml.example    # Modelo de credenciais de login OIDC (Google)
 ├── webapp/                     # Camada da UI web
 │   ├── chat.py                 # Orquestração do chat e efeito de digitação
+│   ├── historico.py            # Carrega/salva o histórico de chat por usuário
 │   ├── comandos.py             # Comandos de barra (/Ajuda, /Status, ...)
 │   ├── consulta.py             # Ponte UI ↔ automação
 │   └── cnpj.py                 # Extração e formatação de CNPJ
@@ -71,7 +76,34 @@ Principais variáveis (veja `.env.example` para a lista completa):
 | `DATABASE_URL` | Conexão do banco (SQLite por padrão) |
 | `CHROME_HEADLESS` | Roda o Chrome sem interface gráfica |
 
-### 4. Interface web
+### 4. Login com Google (interface web)
+
+A interface web exige login. A autenticação usa o OIDC nativo do Streamlit
+(`st.login`/`st.user`, via Authlib) com o Google como provedor.
+
+1. **Crie uma credencial OAuth** no [Google Cloud Console](https://console.cloud.google.com):
+   APIs e Serviços → **Clientes** → *ID do cliente OAuth* → tipo **Aplicativo da Web**.
+2. Em **URIs de redirecionamento autorizados**, adicione exatamente:
+   `http://localhost:8501/oauth2callback` (e a URL de produção, quando houver).
+3. Copie o `client_id` e o `client_secret`.
+4. Crie o arquivo de segredos a partir do modelo e preencha os valores:
+
+   ```bash
+   copy .streamlit\secrets.toml.example .streamlit\secrets.toml   # Windows
+   # cp .streamlit/secrets.toml.example .streamlit/secrets.toml   # Linux/macOS
+   ```
+
+   Gere o `cookie_secret` com:
+   `python -c "import secrets; print(secrets.token_hex(32))"`
+
+> Enquanto o app estiver em modo **Teste** no Google, só e-mails cadastrados em
+> *Público-alvo → Usuários de teste* conseguem logar. O `secrets.toml` contém
+> segredos e **não** é versionado (o `.gitignore` o exclui).
+
+O histórico de cada usuário fica salvo na tabela `chat_messages` e é recarregado
+no login, usando o mesmo banco do `DATABASE_URL`.
+
+### 5. Interface web
 
 ```bash
 streamlit run app.py

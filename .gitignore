@@ -3,6 +3,10 @@
 .env.*
 !.env.example
 
+# Streamlit OAuth secrets (client_id/secret, cookie_secret) — nunca versionar
+.streamlit/secrets.toml
+!.streamlit/secrets.toml.example
+
 # --- Python ---
 __pycache__/
 *.py[cod]
