@@ -2,13 +2,28 @@
 
 import re
 
+from src.core.cnpj_validator import extract_cnpjs as _extract_cnpjs
+from src.core.cnpj_validator import is_valid_cnpj
+
+# Limite de CNPJs aceitos em uma única mensagem. Aumente se precisar.
+MAX_CNPJS_POR_MENSAGEM = 100
+
 
 def extrair_cnpj(texto: str) -> str | None:
-    """Retorna o CNPJ (14 dígitos) válido encontrado no texto, ou None."""
-    digitos = re.sub(r"\D", "", texto or "")
-    if len(digitos) != 14 or not _cnpj_valido(digitos):
-        return None
-    return digitos
+    """Retorna o primeiro CNPJ (14 dígitos) válido encontrado no texto, ou None."""
+    cnpjs = extrair_cnpjs(texto, limite=1)
+    return cnpjs[0] if cnpjs else None
+
+
+def extrair_cnpjs(texto: str, limite: int = MAX_CNPJS_POR_MENSAGEM) -> list[str]:
+    """Retorna CNPJs válidos (com dígito verificador OK), únicos, na ordem de aparição.
+
+    Aceita formatação livre (00.000.000/0000-00, 14 dígitos contínuos, etc.).
+    Limita ao `limite` informado (padrão: MAX_CNPJS_POR_MENSAGEM).
+    """
+    candidatos = _extract_cnpjs(texto or "")
+    validos = [c for c in candidatos if is_valid_cnpj(c)]
+    return validos[:limite]
 
 
 def formatar_cnpj(cnpj: str) -> str:

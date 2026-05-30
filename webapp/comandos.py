@@ -8,7 +8,7 @@ RESPOSTAS_COMANDOS = {
     **Comandos disponíveis:**
     - `/ajuda`: Mostra um texto de ajuda (este mesmo).
     - `/status`: Status da ultima consulta.
-    - `/histórico`: Listar suas últimas consultas.
+    - `/historico`: Listar suas últimas consultas.
     - `/resultado`: Baixar planilhas de uma consulta. Apontar o id da consulta desejada (ex: `/resultado 4bea090e`).
     - `/limpar`: Apaga todo o histórico deste chat (não pode ser desfeito).""",
     # COMANDO STATUS

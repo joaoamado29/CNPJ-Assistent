@@ -1,10 +1,10 @@
-"""Generate Excel spreadsheets from CNPJ query results."""
+"""Gera planilhas Excel a partir dos resultados das consultas (linhas do banco)."""
 
 from __future__ import annotations
 
+import io
 import logging
-from datetime import datetime, timezone
-from pathlib import Path
+from datetime import datetime
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -36,19 +36,12 @@ COLUMNS = [
 ]
 
 
-def generate_spreadsheet(
-    queries: list[CNPJQuery],
-    export_dir: str,
-    request_id: str,
-) -> Path:
-    """Create an .xlsx file with the query results and return its path."""
-    export_path = Path(export_dir)
-    export_path.mkdir(parents=True, exist_ok=True)
+def gerar_xlsx_bytes(queries: list[CNPJQuery], request_id: str) -> tuple[bytes, str]:
+    """Monta um xlsx em memória a partir de linhas de ``cnpj_queries``.
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    filename = f"consulta_simples_{request_id[:8]}_{timestamp}.xlsx"
-    filepath = export_path / filename
-
+    Devolve ``(conteúdo_xlsx, nome_do_arquivo)``. Útil para entregar como
+    download pelo Streamlit sem persistir o arquivo em disco.
+    """
     wb = Workbook()
     ws = wb.active
     ws.title = "Consulta Simples Nacional"
@@ -85,6 +78,10 @@ def generate_spreadsheet(
     ws.auto_filter.ref = ws.dimensions
     ws.freeze_panes = "A2"
 
-    wb.save(str(filepath))
-    logger.info("Spreadsheet saved: %s", filepath)
-    return filepath
+    sufixo = request_id[:8]
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"consulta_simples_{sufixo}_{timestamp}.xlsx"
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    return buffer.getvalue(), filename
