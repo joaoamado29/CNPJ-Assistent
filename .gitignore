@@ -27,6 +27,7 @@ ENV/
 
 # --- Dados gerados em runtime ---
 data/
+data/postgres/
 logs/
 exports/
 *.db

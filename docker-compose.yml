@@ -12,6 +12,11 @@ services:
       - CHROME_BINARY_PATH=/usr/bin/chromium
       # Faz o pyscreeze detectar X11 e usar o scrot para os screenshots (locateOnScreen)
       - XDG_SESSION_TYPE=x11
+      # Dentro do container, conecta no serviço "db" (sobrepõe o DATABASE_URL do .env)
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    depends_on:
+      db:
+        condition: service_healthy
     volumes:
       # Persistem entre execuções (e ficam acessíveis no host)
       - ./data:/app/data
@@ -21,4 +26,23 @@ services:
       - ./src/automation/images:/app/src/automation/images
     # O Chromium precisa de memória compartilhada maior para não travar
     shm_size: "2gb"
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: consulta-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      # Exposto no host para permitir rodar o app fora do compose apontando pro mesmo banco
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     restart: unless-stopped

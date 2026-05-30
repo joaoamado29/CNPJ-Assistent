@@ -10,7 +10,7 @@ guarda o resultado em banco e permite exportar para planilha.
 - 🔐 **Login com Google (OIDC)** — autenticação nativa via `st.login`/`st.user` (Authlib).
 - 🗂️ **Histórico por usuário** — cada usuário logado tem seu chat salvo e recarregado no banco.
 - 🔎 **Automação do portal** — consulta o [Portal do Simples Nacional](https://consopt.www8.receita.fazenda.gov.br/consultaoptantes) via Selenium/PyAutoGUI.
-- 🗄️ **Persistência** — histórico de consultas em SQLite (padrão) ou PostgreSQL via SQLAlchemy.
+- 🗄️ **Persistência** — PostgreSQL (padrão via docker-compose) ou SQLite local via SQLAlchemy.
 - 📊 **Export** — geração de planilhas Excel (openpyxl) com os resultados.
 
 ## Stack
@@ -70,7 +70,8 @@ Principais variáveis (veja `.env.example` para a lista completa):
 
 | Variável | Descrição |
 |---|---|
-| `DATABASE_URL` | Conexão do banco (SQLite por padrão) |
+| `DATABASE_URL` | Conexão do banco (Postgres por padrão; SQLite local opcional) |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Credenciais usadas pelo `docker-compose` ao provisionar o serviço `db` |
 | `CHROME_HEADLESS` | Roda o Chrome sem interface gráfica |
 | `MAX_WORKERS` | Instâncias paralelas do navegador |
 | `REQUEST_DELAY_SECONDS` | Pausa entre consultas (rate limit) |
@@ -110,16 +111,23 @@ streamlit run app.py
 
 ## Rodando com Docker
 
-A imagem inclui Chromium + tela virtual (Xvfb) + window manager, então tanto a
-interface web quanto a automação rodam dentro do container.
+O `docker-compose` sobe **dois serviços**: o app (Chromium + Xvfb + Streamlit) e
+um **PostgreSQL 16** (serviço `db`). O app conecta no Postgres por hostname `db`.
 
 ```bash
-copy .env.example .env        # ajuste o .env antes (DATABASE_URL etc.)
+copy .env.example .env        # ajuste o .env antes (POSTGRES_PASSWORD etc.)
 docker compose up --build
 ```
 
-A interface fica em **http://localhost:8501**. As pastas `data/`, `logs/` e
-`exports/` são montadas como volume e persistem no host.
+A interface fica em **http://localhost:8501** e o Postgres exposto em
+**localhost:5432** (assim você consegue rodar o app **fora** do container
+apontando pro mesmo banco, usando a `DATABASE_URL` postgres do `.env`).
+As pastas `data/`, `data/postgres/`, `logs/` e `exports/` são montadas como
+volume e persistem no host.
+
+> ⚠️ **Antes do primeiro `up`:** troque `POSTGRES_PASSWORD` no `.env` por uma
+> senha forte. Gere com:
+> `python -c "import secrets; print(secrets.token_urlsafe(32))"`
 
 > **Nota sobre a automação:** o reconhecimento por imagem (`src/automation/images/*.png`)
 > foi capturado no Chrome do Windows. A renderização no Chromium Linux é diferente,
