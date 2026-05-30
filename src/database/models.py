@@ -4,7 +4,6 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import (
-    BigInteger,
     Column,
     DateTime,
     ForeignKey,
@@ -29,12 +28,10 @@ class Base(DeclarativeBase):
 
 class ConsultaRequest(Base):
     __tablename__ = "consulta_requests"
-    """Represents a single request made by a Telegram user (may contain N CNPJs)."""
+    """Uma consulta (com N CNPJs) feita por um usuário logado na web."""
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_new_id)
-    telegram_user_id: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
-    telegram_chat_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    telegram_username: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    user_email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     total_cnpjs: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     processed_cnpjs: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")

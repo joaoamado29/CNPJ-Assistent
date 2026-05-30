@@ -1,12 +1,11 @@
-# Agente Telegram – Simples Nacional
+# Consulta Simples Nacional
 
 Consulta automática da situação de CNPJs no portal do **Simples Nacional** da Receita Federal.
-O sistema recebe um CNPJ (por bot do Telegram ou pela interface web), automatiza a consulta no
-portal oficial, guarda o resultado em banco e permite exportar para planilha.
+Você manda um CNPJ pela interface web, o sistema automatiza a consulta no portal oficial,
+guarda o resultado em banco e permite exportar para planilha.
 
 ## Funcionalidades
 
-- 🤖 **Bot do Telegram** — envie um CNPJ e receba a situação do Simples Nacional / SIMEI.
 - 💬 **Interface web (Streamlit)** — chat com efeito de digitação e comandos por *pills*.
 - 🔐 **Login com Google (OIDC)** — autenticação nativa via `st.login`/`st.user` (Authlib).
 - 🗂️ **Histórico por usuário** — cada usuário logado tem seu chat salvo e recarregado no banco.
@@ -16,7 +15,7 @@ portal oficial, guarda o resultado em banco e permite exportar para planilha.
 
 ## Stack
 
-Python 3.11 · Streamlit · Authlib (login OIDC) · python-telegram-bot · Selenium + PyAutoGUI · SQLAlchemy · Pydantic Settings · openpyxl
+Python 3.11 · Streamlit · Authlib (login OIDC) · Selenium + PyAutoGUI · SQLAlchemy · Pydantic Settings · openpyxl
 
 ## Estrutura
 
@@ -36,7 +35,7 @@ Python 3.11 · Streamlit · Authlib (login OIDC) · python-telegram-bot · Selen
 └── src/
     ├── config/settings.py      # Configuração via Pydantic Settings (.env)
     ├── core/                   # Validação de CNPJ e processamento em lote
-    ├── automation/             # Bot de automação do portal Simples Nacional
+    ├── automation/             # Automação do portal Simples Nacional (browser bot)
     ├── database/               # Modelos, conexão e repositório
     └── export/                 # Geração de planilhas
 ```
@@ -60,7 +59,7 @@ pip install -r requirements.txt
 
 ### 3. Configuração
 
-Copie o modelo de variáveis de ambiente e preencha os valores:
+Copie o modelo de variáveis de ambiente e ajuste se necessário:
 
 ```bash
 copy .env.example .env        # Windows
@@ -71,10 +70,10 @@ Principais variáveis (veja `.env.example` para a lista completa):
 
 | Variável | Descrição |
 |---|---|
-| `TELEGRAM_BOT_TOKEN` | Token do bot obtido com o [@BotFather](https://t.me/BotFather) |
-| `TELEGRAM_ALLOWED_USERS` | IDs autorizados, separados por vírgula (vazio = todos) |
 | `DATABASE_URL` | Conexão do banco (SQLite por padrão) |
 | `CHROME_HEADLESS` | Roda o Chrome sem interface gráfica |
+| `MAX_WORKERS` | Instâncias paralelas do navegador |
+| `REQUEST_DELAY_SECONDS` | Pausa entre consultas (rate limit) |
 
 ### 4. Login com Google (interface web)
 
@@ -115,7 +114,7 @@ A imagem inclui Chromium + tela virtual (Xvfb) + window manager, então tanto a
 interface web quanto a automação rodam dentro do container.
 
 ```bash
-copy .env.example .env        # configure o .env antes (TELEGRAM_BOT_TOKEN etc.)
+copy .env.example .env        # ajuste o .env antes (DATABASE_URL etc.)
 docker compose up --build
 ```
 
@@ -131,8 +130,9 @@ A interface fica em **http://localhost:8501**. As pastas `data/`, `logs/` e
 ## Configuração
 
 Toda a configuração é lida do arquivo `.env` na raiz do projeto através do
-`src/config/settings.py`. **Nunca** versione o `.env` — ele contém segredos
-(o `.gitignore` já o exclui). Use o `.env.example` como referência.
+`src/config/settings.py`. **Nunca** versione o `.env` nem o `.streamlit/secrets.toml`
+— ambos contêm segredos (o `.gitignore` já os exclui). Use o `.env.example` e o
+`.streamlit/secrets.toml.example` como referência.
 
 ## Aviso
 

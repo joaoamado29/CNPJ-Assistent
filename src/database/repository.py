@@ -22,17 +22,13 @@ class Repository:
 
     def create_request(
         self,
-        telegram_user_id: int,
-        telegram_chat_id: int,
-        telegram_username: str | None,
+        user_email: str,
         cnpjs: list[str],
     ) -> ConsultaRequest:
         session = self._session()
         try:
             request = ConsultaRequest(
-                telegram_user_id=telegram_user_id,
-                telegram_chat_id=telegram_chat_id,
-                telegram_username=telegram_username,
+                user_email=user_email,
                 total_cnpjs=len(cnpjs),
                 status="pending",
             )
@@ -46,10 +42,10 @@ class Repository:
             session.commit()
             session.refresh(request)
             logger.info(
-                "Request %s created with %d CNPJs for user %d",
+                "Request %s created with %d CNPJs for user %s",
                 request.id,
                 len(cnpjs),
-                telegram_user_id,
+                user_email,
             )
             return request
         except Exception:
@@ -66,14 +62,14 @@ class Repository:
             session.close()
 
     def get_requests_by_user(
-        self, telegram_user_id: int, limit: int = 10
+        self, user_email: str, limit: int = 10
     ) -> list[ConsultaRequest]:
         """Most recent requests made by a given user, newest first."""
         session = self._session()
         try:
             rows = (
                 session.query(ConsultaRequest)
-                .filter_by(telegram_user_id=telegram_user_id)
+                .filter_by(user_email=user_email)
                 .order_by(ConsultaRequest.created_at.desc())
                 .limit(limit)
                 .all()
@@ -84,19 +80,19 @@ class Repository:
             session.close()
 
     def get_request_by_prefix(
-        self, prefix: str, telegram_user_id: int | None = None
+        self, prefix: str, user_email: str | None = None
     ) -> ConsultaRequest | None:
         """Find a request by the short 8-char id shown to users.
 
-        When telegram_user_id is given, only matches requests owned by that user.
+        When user_email is given, only matches requests owned by that user.
         """
         session = self._session()
         try:
             query = session.query(ConsultaRequest).filter(
                 ConsultaRequest.id.like(f"{prefix}%")
             )
-            if telegram_user_id is not None:
-                query = query.filter_by(telegram_user_id=telegram_user_id)
+            if user_email is not None:
+                query = query.filter_by(user_email=user_email)
             return query.first()
         finally:
             session.close()

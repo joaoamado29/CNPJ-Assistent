@@ -4,7 +4,6 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -19,12 +18,8 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # --- Telegram ---
-    telegram_bot_token: str
-    telegram_allowed_users: list[int] = []
-
     # --- Database ---
-    database_url: str = f"sqlite:///{BASE_DIR / 'data' / 'agente_telegram.db'}"
+    database_url: str = f"sqlite:///{BASE_DIR / 'data' / 'consulta_cnpj.db'}"
 
     # --- Automation ---
     chrome_headless: bool = True
@@ -39,16 +34,7 @@ class Settings(BaseSettings):
 
     # --- Logging ---
     log_level: str = "INFO"
-    log_file: str = str(BASE_DIR / "logs" / "agente_telegram.log")
-
-    @field_validator("telegram_allowed_users", mode="before")
-    @classmethod
-    def parse_allowed_users(cls, v):
-        if isinstance(v, str):
-            if not v.strip():
-                return []
-            return [int(uid.strip()) for uid in v.split(",")]
-        return v
+    log_file: str = str(BASE_DIR / "logs" / "consulta_cnpj.log")
 
 
 @lru_cache

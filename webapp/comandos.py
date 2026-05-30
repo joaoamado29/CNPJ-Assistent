@@ -14,7 +14,7 @@ RESPOSTAS_COMANDOS = {
     # COMANDO STATUS
     "/status": "Texto de status aqui",
     # COMANDO HISTÓRICO
-    "/histórico": "Texto de histórico aqui",
+    "/historico": "Texto de histórico aqui",
     # COMANDO RESULTADO
     "/resultado": "Texto de resultado aqui",
     # COMANDO LIMPAR (efeito colateral — tratado em webapp/chat.py)

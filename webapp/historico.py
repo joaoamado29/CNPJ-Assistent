@@ -13,10 +13,10 @@ _initialized = False
 
 
 def _database_url() -> str:
-    """URL do banco do chat. Lê DATABASE_URL do ambiente, sem exigir a config do Telegram."""
+    """URL do banco do chat. Lê DATABASE_URL do ambiente, com fallback pro SQLite local."""
     return os.environ.get(
         "DATABASE_URL",
-        f"sqlite:///{_BASE_DIR / 'data' / 'agente_telegram.db'}",
+        f"sqlite:///{_BASE_DIR / 'data' / 'consulta_cnpj.db'}",
     )
 
 

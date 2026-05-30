@@ -1,8 +1,5 @@
-# Agente Telegram – Simples Nacional
+# Consulta Simples Nacional
 # Install: pip install -r requirements.txt
-
-# Telegram Bot
-python-telegram-bot==21.6
 
 # Automation (PyAutoGUI image recognition: requires pyscreeze + Pillow + opencv-python for confidence=)
 pyautogui==0.9.54
