@@ -6,7 +6,7 @@ import time
 from webapp.cnpj import extrair_cnpj, formatar_cnpj
 from webapp.comandos import resolver_comando
 from webapp.consulta import consultar, formatar_resposta
-from webapp.historico import salvar_mensagem
+from webapp.historico import limpar_mensagens, salvar_mensagem
 
 
 def computar_resposta(prompt: str) -> str:
@@ -24,9 +24,23 @@ def computar_resposta(prompt: str) -> str:
 
 
 def registrar_pergunta(prompt: str) -> None:
-    """Adiciona a mensagem do usuário e marca a resposta como pendente."""
+    """Adiciona a mensagem do usuário e marca a resposta como pendente.
+
+    /limpar é tratado aqui (efeito colateral): apaga o histórico do usuário e
+    não gera turno de chat — feedback vai por toast.
+    """
+    user_id = st.session_state.get("user_id")
+    if prompt.strip() == "/limpar":
+        if user_id:
+            removidas = limpar_mensagens(user_id)
+            st.toast(f"Histórico apagado ({removidas} mensagens).", icon="🧹")
+        else:
+            st.toast("Faça login antes de limpar o histórico.", icon="⚠️")
+        st.session_state.messages = []
+        return
+
     st.session_state.messages.append({"role": "user", "content": prompt})
-    if user_id := st.session_state.get("user_id"):
+    if user_id:
         salvar_mensagem(user_id, "user", prompt)
     st.session_state.resposta_pendente = prompt
 

@@ -55,3 +55,19 @@ def salvar_mensagem(user_id: str, role: str, content: str) -> None:
         session.commit()
     finally:
         session.close()
+
+
+def limpar_mensagens(user_id: str) -> int:
+    """Apaga o histórico do usuário e devolve quantas mensagens foram removidas."""
+    database_url = _ensure_db()
+    session = get_session(database_url)
+    try:
+        removidas = (
+            session.query(ChatMessage)
+            .filter(ChatMessage.user_id == user_id)
+            .delete(synchronize_session=False)
+        )
+        session.commit()
+        return removidas
+    finally:
+        session.close()

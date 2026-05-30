@@ -9,13 +9,16 @@ RESPOSTAS_COMANDOS = {
     - `/ajuda`: Mostra um texto de ajuda (este mesmo).
     - `/status`: Status da ultima consulta.
     - `/histórico`: Listar suas últimas consultas.
-    - `/resultado`: Baixar planilhas de uma consulta. Apontar o id da consulta desejada (ex: `/resultado 4bea090e`).""",
+    - `/resultado`: Baixar planilhas de uma consulta. Apontar o id da consulta desejada (ex: `/resultado 4bea090e`).
+    - `/limpar`: Apaga todo o histórico deste chat (não pode ser desfeito).""",
     # COMANDO STATUS
     "/status": "Texto de status aqui",
     # COMANDO HISTÓRICO
     "/histórico": "Texto de histórico aqui",
     # COMANDO RESULTADO
     "/resultado": "Texto de resultado aqui",
+    # COMANDO LIMPAR (efeito colateral — tratado em webapp/chat.py)
+    "/limpar": "Histórico apagado.",
 }
 
 
