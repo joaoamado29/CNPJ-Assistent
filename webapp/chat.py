@@ -7,10 +7,8 @@ from dataclasses import dataclass
 
 import streamlit as st
 
-from src.export.spreadsheet import gerar_xlsx_bytes
 from webapp.agente import conversar
-from webapp.comandos import resolver_comando
-from webapp.db import repo
+from webapp.comandos import COMANDOS_LLM, resolver_comando
 from webapp.historico import limpar_mensagens, salvar_mensagem
 
 
@@ -23,12 +21,6 @@ class Resposta:
 
 def computar_resposta(prompt: str) -> Resposta:
     """Roteia a entrada: comandos `/` → atalho; tudo o mais → agente IA."""
-    if prompt.startswith("/resultado"):
-        user_email = st.session_state.get("user_id")
-        if not user_email:
-            return Resposta(texto="Faça login para usar /resultado.")
-        return _resposta_resultado(prompt, user_email)
-
     cmd = resolver_comando(prompt)
     if cmd is not None:
         return Resposta(texto=cmd)
@@ -37,37 +29,16 @@ def computar_resposta(prompt: str) -> Resposta:
     if not user_email:
         return Resposta(texto="Faça login para conversar com o assistente.")
 
-    # Tudo (inclusive CNPJ digitado direto) passa pelo agente DeepSeek.
+    # /historico e /status: comando vira prompt sintético antes de ir pro LLM.
+    # Tudo o mais (CNPJ direto ou linguagem natural) passa cru.
+    prompt_para_llm = COMANDOS_LLM.get(prompt, prompt)
+
     historico = st.session_state.get("messages", [])
     with st.spinner("Pensando..."):
-        texto, xlsx_bytes, xlsx_filename = conversar(prompt, user_email, historico)
+        texto, xlsx_bytes, xlsx_filename = conversar(
+            prompt_para_llm, user_email, historico
+        )
     return Resposta(texto=texto, xlsx_bytes=xlsx_bytes, xlsx_filename=xlsx_filename)
-
-
-def _resposta_resultado(prompt: str, user_email: str) -> Resposta:
-    """Recupera uma consulta anterior por ID e devolve o xlsx para download."""
-    parts = prompt.split(maxsplit=1)
-    if len(parts) < 2 or not parts[1].strip():
-        return Resposta(
-            texto="Uso: `/resultado <id>` (ex.: `/resultado 4bea090e`)."
-        )
-    prefixo = parts[1].strip().strip("`").strip()
-    r = repo()
-    req = r.get_request_by_prefix(prefixo, user_email=user_email)
-    if not req:
-        return Resposta(
-            texto=f"Consulta `{prefixo}` não encontrada ou não pertence a você."
-        )
-    queries = r.get_all_queries(req.id)
-    if not queries:
-        return Resposta(texto=f"Consulta `{req.id[:8]}` está vazia.")
-    xlsx_bytes, filename = gerar_xlsx_bytes(queries, req.id)
-    criada_em = req.created_at.strftime("%d/%m/%Y %H:%M") if req.created_at else "—"
-    texto = (
-        f"**Consulta `{req.id[:8]}`** — {req.total_cnpjs} CNPJ(s), "
-        f"status `{req.status}`, criada em {criada_em}."
-    )
-    return Resposta(texto=texto, xlsx_bytes=xlsx_bytes, xlsx_filename=filename)
 
 
 def registrar_pergunta(prompt: str) -> None:

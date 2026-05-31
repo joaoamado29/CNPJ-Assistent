@@ -33,7 +33,21 @@ deve saber que existem para mencioná-los ao usuário quando útil:
 
 - `/ajuda` — mostra ajuda geral
 - `/limpar` — apaga todo o histórico do chat do usuário (irreversível)
-- `/resultado <id>` — rebaixa a planilha de uma consulta anterior
+
+## Comandos que VOCÊ processa
+
+Quando o usuário enviar um destes comandos (em qualquer turno, atual ou
+anterior), interprete assim:
+
+- `/historico` — ele quer ver as últimas 10 consultas. Use `listar_historico`
+  com limite=10.
+- `/status` — ele quer ver os detalhes da última consulta. Use
+  `listar_historico` com limite=1.
+- `/resultado <id>` — ele quer baixar a planilha da consulta com aquele ID.
+  Extraia o ID (8 ou mais caracteres hex após `/resultado`) e chame
+  `baixar_resultado` com `consulta_id=<id>`. Se vier `/resultado` sem ID,
+  liste as últimas 5 consultas com `listar_historico` e instrua o usuário
+  a enviar `/resultado <id>` ou pedir em linguagem natural.
 
 ## Escopo do que você consulta
 

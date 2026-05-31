@@ -2,7 +2,7 @@
 import streamlit as st
 
 from webapp.chat import on_pill, registrar_pergunta, responder_pendente
-from webapp.comandos import RESPOSTAS_COMANDOS
+from webapp.comandos import COMANDOS_PILLS
 from webapp.historico import carregar_mensagens
 
 def main() -> None:
@@ -55,7 +55,7 @@ def main() -> None:
     # independente do que o agente desenhou durante a resposta.
     st.pills(
         "Comandos",
-        list(RESPOSTAS_COMANDOS.keys()),
+        COMANDOS_PILLS,
         key="comando_pill",
         on_change=on_pill,
     )
