@@ -8,9 +8,8 @@ from dataclasses import dataclass
 import streamlit as st
 
 from src.export.spreadsheet import gerar_xlsx_bytes
-from webapp.cnpj import MAX_CNPJS_POR_MENSAGEM, extrair_cnpjs, formatar_cnpj
+from webapp.agente import conversar
 from webapp.comandos import resolver_comando
-from webapp.consulta import consultar_e_persistir, formatar_resposta
 from webapp.db import repo
 from webapp.historico import limpar_mensagens, salvar_mensagem
 
@@ -23,7 +22,7 @@ class Resposta:
 
 
 def computar_resposta(prompt: str) -> Resposta:
-    """Resolve a resposta: /resultado, outros comandos, consulta (1 ou N) ou erro."""
+    """Roteia a entrada: comandos `/` → atalho; tudo o mais → agente IA."""
     if prompt.startswith("/resultado"):
         user_email = st.session_state.get("user_id")
         if not user_email:
@@ -34,62 +33,15 @@ def computar_resposta(prompt: str) -> Resposta:
     if cmd is not None:
         return Resposta(texto=cmd)
 
-    todos = extrair_cnpjs(prompt, limite=MAX_CNPJS_POR_MENSAGEM + 1)
-    if not todos:
-        return Resposta(
-            texto="Nenhum CNPJ encontrado na mensagem. Digite /ajuda para obter ajuda."
-        )
-
     user_email = st.session_state.get("user_id")
     if not user_email:
-        return Resposta(texto="Faça login para consultar CNPJs.")
+        return Resposta(texto="Faça login para conversar com o assistente.")
 
-    excedentes = max(0, len(todos) - MAX_CNPJS_POR_MENSAGEM)
-    cnpjs = todos[:MAX_CNPJS_POR_MENSAGEM]
-
-    if len(cnpjs) == 1:
-        with st.spinner(f"Consultando {formatar_cnpj(cnpjs[0])}..."):
-            request_id, resultados = consultar_e_persistir(cnpjs, user_email)
-        texto = (
-            formatar_resposta(resultados[0])
-            + f"\n\n**Consulta ID:** `{request_id[:8]}`"
-        )
-        return Resposta(texto=texto)
-
-    # 2+ CNPJs → barra de progresso + xlsx
-    progresso = st.progress(0.0, text="Iniciando lote...")
-
-    def _on_progress(i: int, total: int, cnpj_atual: str) -> None:
-        progresso.progress(
-            (i - 1) / total,
-            text=f"Consultando {i}/{total} — {formatar_cnpj(cnpj_atual)}",
-        )
-
-    request_id, resultados = consultar_e_persistir(
-        cnpjs, user_email, on_progress=_on_progress
-    )
-    progresso.progress(1.0, text="Concluído.")
-    progresso.empty()
-
-    queries = repo().get_all_queries(request_id)
-    xlsx_bytes, xlsx_filename = gerar_xlsx_bytes(queries, request_id)
-
-    sucessos = sum(1 for r in resultados if r.success)
-    erros = len(resultados) - sucessos
-    linhas = [
-        f"**Lote concluído.** {len(resultados)} CNPJs — ✅ {sucessos} sucesso(s), ❌ {erros} erro(s).",
-        f"**Consulta ID:** `{request_id[:8]}` — baixe novamente com `/resultado {request_id[:8]}`.",
-        f"Planilha: `{xlsx_filename}`.",
-    ]
-    if excedentes:
-        linhas.append(
-            f"\n⚠️ Limite de {MAX_CNPJS_POR_MENSAGEM} CNPJs por mensagem — {excedentes} foram ignorados."
-        )
-    return Resposta(
-        texto="\n\n".join(linhas),
-        xlsx_bytes=xlsx_bytes,
-        xlsx_filename=xlsx_filename,
-    )
+    # Tudo (inclusive CNPJ digitado direto) passa pelo agente DeepSeek.
+    historico = st.session_state.get("messages", [])
+    with st.spinner("Pensando..."):
+        texto, xlsx_bytes, xlsx_filename = conversar(prompt, user_email, historico)
+    return Resposta(texto=texto, xlsx_bytes=xlsx_bytes, xlsx_filename=xlsx_filename)
 
 
 def _resposta_resultado(prompt: str, user_email: str) -> Resposta:

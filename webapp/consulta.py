@@ -77,7 +77,7 @@ def consultar_e_persistir(
 def formatar_resposta(r: ConsultaResult) -> str:
     """Monta o texto em markdown exibido no chat para uma consulta única."""
     if not r.success:
-        return f"Erro: {r.error or 'falha na consulta'}"
+        return f"Erro na consulta do CNPJ {r.cnpj}: {r.error or 'falha na consulta'}"
     return (
         f"** Nome Empresárial: {r.nome_empresarial}**\n\n"
         f"- CNPJ: {r.cnpj}\n"

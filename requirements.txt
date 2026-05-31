@@ -28,3 +28,6 @@ streamlit==1.57.0
 
 # Login OIDC nativo do Streamlit (st.login / st.user)
 Authlib==1.7.2
+
+# Cliente LLM (OpenAI-compatível). Usado pelo agente DeepSeek via base_url override.
+openai>=1.50

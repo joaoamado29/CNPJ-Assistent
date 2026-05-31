@@ -24,6 +24,8 @@ services:
       - ./exports:/app/exports
       # Templates de imagem da automação: editar no host reflete sem rebuild
       - ./src/automation/images:/app/src/automation/images
+      # Segredos (OAuth + DeepSeek). Read-only: container só lê, nunca grava.
+      - ./.streamlit:/app/.streamlit:ro
     # O Chromium precisa de memória compartilhada maior para não travar
     shm_size: "2gb"
     restart: unless-stopped

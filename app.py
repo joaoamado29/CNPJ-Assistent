@@ -34,13 +34,6 @@ def main() -> None:
     for msg in st.session_state.messages:
         messages.chat_message(msg["role"]).write(msg["content"])
 
-    st.pills(
-        "Comandos",
-        list(RESPOSTAS_COMANDOS.keys()),
-        key="comando_pill",
-        on_change=on_pill,
-    )
-
     # Decide a entrada: chat tem prioridade, senão um comando pendente da pill
     prompt = None
     if chat_prompt := st.chat_input("Digite um CNPJ"):
@@ -53,8 +46,19 @@ def main() -> None:
         registrar_pergunta(prompt)
         st.rerun()
 
-    # Mostra a pergunta e então responde com efeito de digitação (segundo rerun)
+    # Mostra a pergunta e então responde com efeito de digitação (segundo rerun).
+    # Status da consulta (st.status do tool) aparece em ordem natural — entre o
+    # histórico e as pills.
     responder_pendente(messages)
+
+    # Pills renderizadas POR ÚLTIMO → visualmente ficam logo acima do chat_input,
+    # independente do que o agente desenhou durante a resposta.
+    st.pills(
+        "Comandos",
+        list(RESPOSTAS_COMANDOS.keys()),
+        key="comando_pill",
+        on_change=on_pill,
+    )
 
 
 if __name__ == "__main__":

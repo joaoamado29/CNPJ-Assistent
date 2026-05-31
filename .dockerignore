@@ -12,8 +12,9 @@ __pycache__/
 .gitignore
 .gitattributes
 
-# Segredos (injetados via env_file em runtime, não no build)
+# Segredos (injetados em runtime via env_file ou volume — nunca dentro da imagem)
 .env
+.streamlit/secrets.toml
 
 # Dados gerados em runtime (montados como volume)
 data/
