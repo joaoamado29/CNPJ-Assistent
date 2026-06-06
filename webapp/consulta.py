@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Callable
-
 from src.automation.simples_nacional import ConsultaResult, SimplesNacionalBot
+from src.database.repository import Repository
 
 from webapp.cnpj import formatar_cnpj
-from webapp.db import repo
 
 
 def consultar(cnpj: str) -> ConsultaResult:
@@ -19,59 +17,41 @@ def consultar(cnpj: str) -> ConsultaResult:
         bot.close()
 
 
-def consultar_e_persistir(
-    cnpjs: list[str],
-    user_email: str,
-    on_progress: Callable[[int, int, str], None] | None = None,
-) -> tuple[str, list[ConsultaResult]]:
-    """Cria ConsultaRequest, processa CNPJs em ordem (FIFO) e grava cada resultado.
+def processar_request(r: Repository, request_id: str) -> None:
+    """Processa os CNPJs ainda pendentes de um request já existente (usado pelo worker).
 
-    Retorna ``(request_id, lista de ConsultaResult na mesma ordem de cnpjs)``.
-    Cada CNPJ vira uma linha em ``cnpj_queries`` e a consulta agregada em
-    ``consulta_requests`` — buscável depois por ``/resultado <id>``.
+    Percorre apenas as queries ``pending``, então um request reaberto após uma
+    queda retoma de onde parou — os CNPJs já concluídos são pulados. Cada CNPJ
+    abre e fecha seu próprio Chrome via ``consultar()``. Ao final, define o
+    status do request a partir de TODAS as queries: ``completed`` se houve ao
+    menos um sucesso, senão ``failed``.
     """
-    r = repo()
-    request = r.create_request(user_email=user_email, cnpjs=cnpjs)
-    r.update_request_status(request.id, "processing")
+    r.update_request_status(request_id, "processing")
 
-    pending = r.get_pending_queries(request.id)
-    q_by_cnpj = {q.cnpj: q for q in pending}
-
-    resultados: list[ConsultaResult] = []
-    sucessos = 0
-    total = len(cnpjs)
-    for i, cnpj in enumerate(cnpjs, start=1):
-        if on_progress is not None:
-            on_progress(i, total, cnpj)
+    for q in r.get_pending_queries(request_id):
         try:
-            res = consultar(cnpj)
+            res = consultar(q.cnpj)
         except Exception as exc:
-            res = ConsultaResult(cnpj=cnpj, success=False, error=str(exc))
-        resultados.append(res)
+            res = ConsultaResult(cnpj=q.cnpj, success=False, error=str(exc))
+        r.update_query_result(
+            q.id,
+            status="success" if res.success else "error",
+            nome_empresarial=res.nome_empresarial,
+            situacao_simples=res.situacao_simples,
+            situacao_simei=res.situacao_simei,
+            periodos_anteriores_sn=res.periodos_anteriores_sn,
+            periodos_anteriores_simei=res.periodos_anteriores_simei,
+            eventos_futuros_sn=res.eventos_futuros_sn,
+            eventos_futuros_simei=res.eventos_futuros_simei,
+            mei_transportador_autonomo_cargas=res.mei_transportador_autonomo_cargas,
+            raw_data=str(res.raw_text) if res.raw_text else None,
+            error_message=res.error,
+        )
+        r.increment_request_processed(request_id)
 
-        q = q_by_cnpj.get(cnpj)
-        if q is not None:
-            r.update_query_result(
-                q.id,
-                status="success" if res.success else "error",
-                nome_empresarial=res.nome_empresarial,
-                situacao_simples=res.situacao_simples,
-                situacao_simei=res.situacao_simei,
-                periodos_anteriores_sn=res.periodos_anteriores_sn,
-                periodos_anteriores_simei=res.periodos_anteriores_simei,
-                eventos_futuros_sn=res.eventos_futuros_sn,
-                eventos_futuros_simei=res.eventos_futuros_simei,
-                mei_transportador_autonomo_cargas=res.mei_transportador_autonomo_cargas,
-                raw_data=str(res.raw_text) if res.raw_text else None,
-                error_message=res.error,
-            )
-            r.increment_request_processed(request.id)
-        if res.success:
-            sucessos += 1
-
-    final_status = "completed" if sucessos > 0 else "failed"
-    r.update_request_status(request.id, final_status)
-    return request.id, resultados
+    todas = r.get_all_queries(request_id)
+    sucessos = sum(1 for q in todas if q.status == "success")
+    r.update_request_status(request_id, "completed" if sucessos > 0 else "failed")
 
 
 def formatar_resposta(r: ConsultaResult) -> str:

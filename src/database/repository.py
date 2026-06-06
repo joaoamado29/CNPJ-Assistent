@@ -124,6 +124,64 @@ class Repository:
         finally:
             session.close()
 
+    def claim_next_pending_request(self) -> ConsultaRequest | None:
+        """Pega o request ``pending`` mais antigo e marca ``processing`` atomicamente.
+
+        Em Postgres usa ``SELECT ... FOR UPDATE SKIP LOCKED`` para ser seguro
+        mesmo se houver mais de um worker. Retorna o request (destacado da
+        sessão) ou ``None`` se a fila estiver vazia.
+        """
+        session = self._session()
+        try:
+            query = (
+                session.query(ConsultaRequest)
+                .filter_by(status="pending")
+                .order_by(ConsultaRequest.created_at.asc())
+            )
+            if session.bind.dialect.name.startswith("postgresql"):
+                query = query.with_for_update(skip_locked=True)
+            request = query.first()
+            if request is None:
+                return None
+            request.status = "processing"
+            session.commit()
+            session.refresh(request)
+            session.expunge(request)
+            logger.info("Request %s reivindicado pelo worker", request.id)
+            return request
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def reset_orphaned_processing(self) -> int:
+        """Volta requests presos em ``processing`` para ``pending``.
+
+        Recuperação de boot: se o worker morreu no meio de um job, o request
+        ficou ``processing``. Voltando para ``pending``, ele é reivindicado de
+        novo; como cada CNPJ guarda seu próprio status, só os ainda ``pending``
+        são reprocessados (retoma de onde parou).
+        """
+        session = self._session()
+        try:
+            n = (
+                session.query(ConsultaRequest)
+                .filter_by(status="processing")
+                .update(
+                    {ConsultaRequest.status: "pending"}, synchronize_session=False
+                )
+            )
+            session.commit()
+            if n:
+                logger.info("Recuperação: %d request(s) processing -> pending", n)
+            return int(n)
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
     # --- CNPJQuery ---
 
     def get_pending_queries(self, request_id: str) -> list[CNPJQuery]:

@@ -20,6 +20,17 @@ done
 fluxbox >/dev/null 2>&1 &
 sleep 1
 
+# Worker da fila: processo separado, supervisionado (reergue se cair). Roda em
+# segundo plano independente do navegador — fechar a aba do celular não o afeta.
+# Herda o mesmo DISPLAY=:99 para controlar o Chromium na tela virtual.
+(
+    while true; do
+        echo "[start] iniciando worker da fila..."
+        python -u worker.py || echo "[start] worker saiu (code $?); reinicia em 2s"
+        sleep 2
+    done
+) &
+
 exec streamlit run app.py \
     --server.address=0.0.0.0 \
     --server.port=8501 \

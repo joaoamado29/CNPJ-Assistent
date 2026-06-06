@@ -17,8 +17,7 @@ import streamlit as st
 from openai import OpenAI
 
 from src.export.spreadsheet import gerar_xlsx_bytes
-from webapp.cnpj import MAX_CNPJS_POR_MENSAGEM, extrair_cnpjs, formatar_cnpj
-from webapp.consulta import consultar_e_persistir
+from webapp.cnpj import MAX_CNPJS_POR_MENSAGEM, extrair_cnpjs
 from webapp.db import repo
 
 logger = logging.getLogger(__name__)
@@ -41,6 +40,10 @@ Regras de ouro:
 - Quando o usuário mencionar um ou mais CNPJs, extraia os 14 dígitos e chame
   `consultar_cnpjs` com a lista (só dígitos, sem pontuação).
 - Não peça permissão para consultar quando o CNPJ já foi fornecido — execute.
+- As consultas são ASSÍNCRONAS: `consultar_cnpjs` apenas ENFILEIRA e devolve um
+  id; os dados NÃO voltam na chamada. Confirme que a consulta está processando e
+  avise que o progresso e o resultado aparecem no painel "Última consulta" logo
+  abaixo do chat. Nunca invente os dados.
 
 As seções abaixo trazem o contexto operacional da plataforma. Siga-as como
 fonte da verdade sobre limites, escopo e formato de resposta.
@@ -72,10 +75,11 @@ TOOLS = [
         "function": {
             "name": "consultar_cnpjs",
             "description": (
-                "Consulta um ou mais CNPJs no portal do Simples Nacional, em ordem (FIFO). "
-                "Persiste cada consulta no banco com um ID. Para 2+ CNPJs gera uma "
-                "planilha xlsx que aparece como botão de download abaixo da resposta. "
-                "Retorna resumo com ID e dados (quando 1 CNPJ)."
+                "Enfileira a consulta de um ou mais CNPJs no portal do Simples Nacional. "
+                "O processamento é ASSÍNCRONO: um worker processa em segundo plano (FIFO) "
+                "e o progresso e o resultado aparecem no painel 'Última consulta' abaixo "
+                "do chat. Retorna apenas {id, total_cnpjs, status:'enfileirada'} — NÃO "
+                "retorna os dados do CNPJ. Avise o usuário que a consulta está processando."
             ),
             "parameters": {
                 "type": "object",
@@ -146,65 +150,16 @@ def _tool_consultar_cnpjs(
     if not validos:
         return (json.dumps({"erro": "nenhum CNPJ válido na requisição"}), None, None)
 
-    total = len(validos)
-    plural = "s" if total > 1 else ""
-    with st.status(
-        f"🔎 Consultando {total} CNPJ{plural}...", expanded=True
-    ) as status:
-        progresso = st.progress(0.0, text="Iniciando...")
-
-        def _on_progress(i: int, total_n: int, cnpj_atual: str) -> None:
-            progresso.progress(
-                (i - 1) / total_n,
-                text=f"Consultando {i}/{total_n} — {formatar_cnpj(cnpj_atual)}",
-            )
-
-        request_id, resultados = consultar_e_persistir(
-            validos, user_email, on_progress=_on_progress
-        )
-        progresso.progress(1.0, text="Concluído.")
-
-        sucessos = sum(1 for r in resultados if r.success)
-        erros = len(resultados) - sucessos
-        status.update(
-            label=f"✅ Consulta concluída — {sucessos} sucesso(s), {erros} erro(s)",
-            state="complete",
-            expanded=False,
-        )
-
-    if len(resultados) == 1:
-        r = resultados[0]
-        if r.success:
-            payload = {
-                "id": request_id[:8],
-                "cnpj": r.cnpj,
-                "nome_empresarial": r.nome_empresarial,
-                "situacao_simples": r.situacao_simples,
-                "situacao_simei": r.situacao_simei,
-                "periodos_anteriores_sn": r.periodos_anteriores_sn,
-                "periodos_anteriores_simei": r.periodos_anteriores_simei,
-                "eventos_futuros_sn": r.eventos_futuros_sn,
-                "eventos_futuros_simei": r.eventos_futuros_simei,
-                "mei_transportador_autonomo_cargas": r.mei_transportador_autonomo_cargas,
-            }
-        else:
-            payload = {
-                "id": request_id[:8],
-                "cnpj": r.cnpj,
-                "erro": r.error or "falha na consulta",
-            }
-        return (json.dumps(payload, ensure_ascii=False), None, None)
-
-    queries = repo().get_all_queries(request_id)
-    xlsx_bytes, filename = gerar_xlsx_bytes(queries, request_id)
+    # Apenas enfileira (status "pending"); o worker em segundo plano processa.
+    # Assim o trabalho não morre se o usuário fechar o navegador, e o progresso/
+    # resultado são acompanhados pelo painel "Última consulta" (lê do banco).
+    request = repo().create_request(user_email=user_email, cnpjs=validos)
     payload = {
-        "id": request_id[:8],
-        "total_cnpjs": len(resultados),
-        "sucessos": sucessos,
-        "erros": erros,
-        "planilha": filename,
+        "id": request.id[:8],
+        "total_cnpjs": len(validos),
+        "status": "enfileirada",
     }
-    return (json.dumps(payload, ensure_ascii=False), xlsx_bytes, filename)
+    return (json.dumps(payload, ensure_ascii=False), None, None)
 
 
 def _tool_listar_historico(

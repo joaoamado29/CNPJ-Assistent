@@ -45,3 +45,6 @@ screenshots/
 *.swp
 .DS_Store
 Thumbs.db
+
+# --- Documentação local (não versionar) ---
+/docs/
