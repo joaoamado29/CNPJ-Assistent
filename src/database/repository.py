@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.database.connection import get_session
-from src.database.models import CNPJQuery, ConsultaRequest
+from src.database.models import CNPJQuery, ChatMessage, ConsultaRequest
 
 logger = logging.getLogger(__name__)
 
@@ -270,6 +271,53 @@ class Repository:
             request.processed_cnpjs += 1
             session.commit()
             return request.processed_cnpjs
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    # --- Manutenção / expurgo ---
+
+    def purge_older_than(
+        self, hours: int, *, include_chat: bool = False
+    ) -> dict[str, int]:
+        """Apaga registros mais antigos que ``hours`` horas (expurgo agendado).
+
+        Remove primeiro as linhas-filhas em ``cnpj_queries`` (a FK não tem
+        ``ON DELETE CASCADE`` no banco) e depois os ``consulta_requests`` antigos.
+        ``chat_messages`` só é tocado se ``include_chat=True``. Retorna a
+        contagem removida por tabela.
+        """
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+        session = self._session()
+        try:
+            antigos = select(ConsultaRequest.id).where(
+                ConsultaRequest.created_at < cutoff
+            )
+            n_queries = (
+                session.query(CNPJQuery)
+                .filter(CNPJQuery.request_id.in_(antigos))
+                .delete(synchronize_session=False)
+            )
+            n_requests = (
+                session.query(ConsultaRequest)
+                .filter(ConsultaRequest.created_at < cutoff)
+                .delete(synchronize_session=False)
+            )
+            n_chat = 0
+            if include_chat:
+                n_chat = (
+                    session.query(ChatMessage)
+                    .filter(ChatMessage.created_at < cutoff)
+                    .delete(synchronize_session=False)
+                )
+            session.commit()
+            return {
+                "cnpj_queries": n_queries,
+                "consulta_requests": n_requests,
+                "chat_messages": n_chat,
+            }
         except Exception:
             session.rollback()
             raise
